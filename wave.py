@@ -2,13 +2,14 @@
 """
 Created on Fri Sep 28 09:55:11 2018
 
-@author: 32818
+@author: haoqi
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
 import os
 #import pandas as pd
+from filter import ArithmeticAverage
 
 def loaddata(filename):
     ''' 
@@ -84,8 +85,9 @@ pbc_all = pb_all+pc_all
 #for i in np.arange(n):
 #    plt.plot(pbc[i,0:1500])
 #plt.show()
+pc_filter = np.array(ArithmeticAverage(pc_all[0,:],2))
 
-pc_diff = np.diff(pc_all[0,:],n=2,axis=-1)
+pc_diff = np.diff(pc_filter,n=1,axis=-1)
 fig = plt.figure()
 plt.subplot(211)
 plt.plot(pc_all[0,0:500])
