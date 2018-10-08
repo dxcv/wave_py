@@ -1,0 +1,131 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Sep 30 14:43:44 2018
+用于波形信号处理
+@author: haoqi
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+
+def normalization(a,norm = False):
+    '''
+    function:归一化数据
+        标准归一化[0,1],均值归一化（变为正态分布）
+    '''
+    if not norm:
+        a = np.asanyarray(a)
+        a = (a.T-np.min(a,axis=-1))/(np.max(a,axis=-1)-np.min(a,axis=-1))
+    else:
+        a = (a.T - a.mean(axis=-1))/a.std(axis=-1)
+    a = a.T
+    return a
+
+def wave_diff(a, n=1, axis=-1):
+    '''
+    function：差分
+        后期需要根据输入数据形式，对函数进行优化
+    input:
+        data:数据； n:阶次； axis:差分的维度
+    output:
+        返回结果
+    '''
+    if n == 0:
+        return a
+    if n < 0:
+        raise ValueError(
+            "order must be non-negative but got " + repr(n))
+
+    #a = asanyarray(a)
+    nd = a.ndim
+    #axis = normalize_axis_index(axis, nd)
+
+    slice1 = [slice(None)] * nd
+    slice2 = [slice(None)] * nd
+    slice1[axis] = slice(1, None)
+    slice2[axis] = slice(None, -1)
+    slice1 = tuple(slice1)
+    slice2 = tuple(slice2)
+
+    #op = not_equal if a.dtype == np.bool_ else subtract
+    for _ in range(n):
+        a = np.subtract(a[slice1], a[slice2])
+
+    return a
+
+# 平滑并绘图
+def smooth(x, n=20):
+    N = len(x)
+
+    weight = np.ones(n)
+    weight /= weight.sum()
+    x_sma = np.convolve(x, weight, mode='valid')  # 简单移动平均
+
+    weight = np.linspace(1, 0, n)
+    weight = np.exp(weight)
+    weight /= weight.sum()
+    x_ema = np.convolve(x, weight, mode='valid')  # 指数移动平均
+
+#    mpl.rcParams['font.sans-serif'] = [u'SimHei']
+#    mpl.rcParams['axes.unicode_minus'] = False
+#    plt.figure(facecolor='w')
+#    plt.plot(np.arange(N), x, 'c-', linewidth=1, label=u'原始')
+#    t = np.arange(n - 1, N)
+#    plt.plot(t, x_sma, 'g-', linewidth=1, label=u'简单移动平均线')
+#    plt.plot(t, x_ema, 'r-', linewidth=1, label=u'指数移动平均线')
+#    plt.legend(loc='upper right')
+#    plt.grid(True)
+#    plt.show()
+    return x_sma, x_ema
+
+def ft(x0):
+    mpl.rcParams['font.sans-serif'] = [u'SimHei']
+    mpl.rcParams['axes.unicode_minus'] = False
+
+    n = 20
+    N = len(x0)
+    x = ((x0 - np.mean(x0)) / (np.max(x0) - np.min(x0))).flat
+
+    # 指数移动平均
+    weight = np.linspace(1, 0, n)
+    weight = np.exp(weight)
+    weight /= weight.sum()
+    x_ema = np.convolve(x, weight, mode='valid')
+    t = np.arange(n - 1, N)
+
+    # 傅里叶变换(原始数据)
+    # plt.subplot(212)
+    N2 = len(x)
+    w = np.arange(N2) * 2 * np.pi / N2
+    f = np.fft.fft(x)
+    a = np.abs(f / N2)
+    plt.stem(w, a)
+    # plt.show()
+
+    # 傅里叶变换(平滑后数据)
+    # plt.subplot(212)
+#    N2 = len(x_ema)
+#    w = np.arange(N2) * 2 * np.pi / N2
+#    f = np.fft.fft(x_ema)
+#    a = np.abs(f / N2)
+#    plt.stem(w, a)
+
+    # 逆变换
+    f_real = np.real(f)
+    lim = 0.9
+    eps = lim * f_real.max()
+    f_real[(f_real < eps) & (f_real > -eps)] = 0
+    f_imag = np.imag(f)
+    eps = lim * f_imag.max()
+    f_imag[(f_imag < eps) & (f_imag > -eps)] = 0
+    f1 = f_real + f_imag * 1j
+    y1 = np.fft.ifft(f1)
+    y1 = np.real(y1)
+
+    # plt.subplot(211)
+    plt.plot(t, x_ema, label=u'指数移动平均线')
+    plt.plot(x, label=u'原始数据')
+    plt.plot(y1, label=u'逆变换')
+
+    plt.legend(loc='upper left')
+    plt.show()
