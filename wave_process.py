@@ -21,39 +21,8 @@ def normalization(a,norm = False):
     a = a.T
     return a
 
-def wave_diff(a, n=1, axis=-1):
-    '''
-    function：差分
-        后期需要根据输入数据形式，对函数进行优化
-    input:
-        data:数据； n:阶次； axis:差分的维度
-    output:
-        返回结果
-    '''
-    if n == 0:
-        return a
-    if n < 0:
-        raise ValueError(
-            "order must be non-negative but got " + repr(n))
 
-    #a = asanyarray(a)
-    nd = a.ndim
-    #axis = normalize_axis_index(axis, nd)
-
-    slice1 = [slice(None)] * nd
-    slice2 = [slice(None)] * nd
-    slice1[axis] = slice(1, None)
-    slice2[axis] = slice(None, -1)
-    slice1 = tuple(slice1)
-    slice2 = tuple(slice2)
-
-    #op = not_equal if a.dtype == np.bool_ else subtract
-    for _ in range(n):
-        a = np.subtract(a[slice1], a[slice2])
-
-    return a
-
-# 平滑并绘图
+# 平滑
 def smooth(x, n=20):
     N = len(x)
 
@@ -77,7 +46,7 @@ def smooth(x, n=20):
 #    plt.grid(True)
 #    plt.show()
     return x_sma, x_ema
-
+'''
 def ft(x0):
     mpl.rcParams['font.sans-serif'] = [u'SimHei']
     mpl.rcParams['axes.unicode_minus'] = False
@@ -129,3 +98,4 @@ def ft(x0):
 
     plt.legend(loc='upper left')
     plt.show()
+'''
