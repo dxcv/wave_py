@@ -71,33 +71,40 @@ pb_all = np.loadtxt("静态压数据.txt",dtype=int)
 pc_all = np.loadtxt("动态压数据.txt",dtype=int)
 pbc_all = pb_all+pc_all
 
-for i in range(pc_all.shape[0]):
-    pc = pc_all[i]
+
+#for i in range(pc_all.shape[0]):
+#    pc = pc_all[i]
 
 #*********************
 # 验证不同滤波器的影响
 #*********************
 
-#pc = pc_all[32]
-    
-    # 数据处理
-    pc = normalization(pc)
-    b,a = signal.butter(3,0.005,'high')
-    sf = signal.filtfilt(b,a,pc)
-    a1, a = smooth(sf,n=10)
-    
-    ## 寻找特征点
-    wave = wave_average(a)
-    wave_length = len(wave)
-    
-    T = wave_T(fs = 200, length = wave_length)
-    loc_peak_new, y_peak_new, loc_valley_new, y_valley_new = find_features(wave)
-    
-    get_figure(wave,loc_peak_new, y_peak_new, loc_valley_new, y_valley_new)
+pc = pc_all[34]
 
-#plt.plot(wave_dif1,label=u'一阶差分')
-#plt.plot(wave_secdif,label=u'二阶差分')
-#plt.plot(wave_thrdif,label=u'三阶差分')
+# 数据处理
+pc = normalization(pc)
+
+#pc = kalman(pc)
+
+b,a = signal.butter(3,0.005,'high')
+sf = signal.filtfilt(b,a,pc)
+a1, a = smooth(sf,n=10)
+## 寻找特征点
+
+wave = wave_average(a)
+wave_length = len(wave)
+
+T = wave_T(fs = 200, length = wave_length)
+loc_peak_new, y_peak_new, loc_valley_new, y_valley_new = find_features(wave)
+
+get_figure(wave,loc_peak_new, y_peak_new, loc_valley_new, y_valley_new)
+
+
+
+
+#    plt.plot(wave_dif1,label=u'一阶差分')
+#    plt.plot(wave_secdif,label=u'二阶差分')
+#    plt.plot(wave_thrdif,label=u'三阶差分')
 #plt.scatter(loc_peak1,y_peak1)
 #plt.scatter(loc_peak2,y_peak2)
 #plt.scatter(loc_peak1[1],wave[loc_peak1[1]])
