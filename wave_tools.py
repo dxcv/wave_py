@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import scipy as sp
 from pandas import Series
 from scipy import interpolate
+from scipy import signal
 
 def wave_diff(a, n=1, axis=-1):
     '''
@@ -83,9 +84,49 @@ def find_peak(a):
     y_start = np.delete(y_start, need_to_delet, axis = 0)
     return count_peak, y_peak, count_start, y_start
 
+def find_peak1(a):
+    '''
+    function:寻找波峰波谷
+    input:数据
+    outpu：
+        count_peak：波峰位置
+        y_peak：波峰值
+        count_start：起始点位置
+        y_start：起始点幅值
+    '''
+    # 求波峰
+    pm = np.amax(a)
+    G = 0.5*pm
+#    a_large = np.where(a>G, a, 0)
+    a_large = np.maximum(a, G)
+    count_peak, y_peak = peak1(a_large)
+    # 将误识别点去除
+    count_peak = count_peak[-1::-1]
+    y_peak = y_peak[-1::-1]
+    
+    count_peak_diff = wave_diff(count_peak, n=1, axis=-1)
+    need_to_delet = np.where(count_peak_diff>-100)
+    count_peak = np.delete(count_peak, need_to_delet, axis = 0)
+    y_peak = np.delete(y_peak, need_to_delet, axis = 0)
+
+    count_peak = count_peak[-1::-1]
+    y_peak = y_peak[-1::-1]
+  
+    # 求波谷-起始点
+    #ps = np.min(a)
+    G2 = 0.4 * pm
+    a_start = np.minimum(a, G2)  
+    count_start, y_start = valley1(a_start)
+    # 将误识别点去除
+    count_start_diff = wave_diff(count_start, n=1, axis=-1)
+    need_to_delet = np.where(count_start_diff<100)
+    count_start = np.delete(count_start, need_to_delet, axis = 0)
+    y_start = np.delete(y_start, need_to_delet, axis = 0)
+    return count_peak, y_peak, count_start, y_start
+
 def peak(a,n=1):
     '''
-    function:寻找波峰
+    function:寻找波峰，通过差分
     '''
     a_diff = wave_diff(a, n=n, axis=-1)
     N = len(a_diff)-n
@@ -117,7 +158,7 @@ def peak1(a):
 
 def valley(a,n=1):
     '''
-    function:寻找波谷
+    function:寻找波谷，通过差分
     '''
     a_diff = wave_diff(a, n=n, axis=-1)
     N = len(a_diff)-1
@@ -191,7 +232,7 @@ def wave_average(a):
     
     cuttings_new = cuttings_new.reshape([length_length,m_length])
     wave = np.mean(cuttings_new,axis = 0)
-    
+    wave = wave-min(wave)
     # 计算周期
     
     return wave
@@ -213,7 +254,7 @@ def wave_average_by_fit(a):
     v = np.std(length) #标准差
     
     # 选出标准差小于2倍标准差的周期
-    mark = np.abs(length-m)<=2*v
+    mark = np.abs(length-m)<=1.8*v
     cuttings = cuttings[mark]
     length = length[mark]
     m_length = int(round(np.mean(length)))
@@ -236,7 +277,7 @@ def wave_T(fs = 200, length = 200):
     return int(round(fs*60/length))
 
     
-def find_features(wave,m_length = 180):
+def find_features(wave):
     '''
     function：寻找特征点
     '''
@@ -322,6 +363,23 @@ def find_features(wave,m_length = 180):
     
     return loc_peak_new, y_peak_new, loc_valley_new, y_valley_new
 
+def find_features1(wave):
+    '''
+    function：直接通过求局部极值的方式求波峰波谷
+    '''
+    loc_peak1, y_peak1 = peak1(wave)
+    loc_valley1, y_valley1 = valley1(wave)
+    mark_p = loc_peak1<120
+    mark_v = loc_valley1<120
+    
+    loc_peak1 = loc_peak1[mark_p]
+    loc_valley1 = loc_valley1[mark_v]
+    
+    y_peak1 = y_peak1[mark_p]
+    y_valley1 = y_valley1[mark_v]
+    
+    return loc_peak1,y_peak1,loc_valley1,y_valley1
+
 def get_figure(wave,loc_peak_new, y_peak_new, loc_valley_new, y_valley_new):
     '''
     function:将特征体现在图中
@@ -353,4 +411,41 @@ def fit(a,n):
     tck = interpolate.splrep(x, a)
     a_bspline = interpolate.splev(x_new, tck)
     return x_new,a_bspline
+
+def breath(wave):
+    '''
+    function:提取呼吸率
+    '''
+    b,a = signal.butter(5,0.002,'high')
+    sf = signal.filtfilt(b,a,wave)
     
+    b,a = signal.butter(5,0.004,'low')
+    sf = signal.filtfilt(b,a,sf)
+    return sf
+    
+def breath_average(wave):
+    '''
+    function:求呼吸波平均值
+    '''
+    loc,y = peak(wave)
+    cuttings = cutting(wave, loc)
+    
+    length = np.array([len(i) for i in cuttings])
+    m = np.mean(length)
+    v = np.std(length) #标准差
+    
+    # 选出标准差小于2倍标准差的周期
+    mark = np.abs(length-m)<=1*v
+    cuttings = cuttings[mark]
+    length = length[mark]
+    m_length = int(round(np.mean(length)))
+#    m_length = max(length)
+    length_length = len(length)
+    # 取均值数的数据
+    cuttings_new = np.array([])
+    for cut in cuttings:
+        cuttings_new = np.append(cuttings_new, fit(cut,n=m_length)[1])
+    cuttings_new = cuttings_new.reshape([length_length,m_length])
+    wave = np.mean(cuttings_new,axis = 0)
+    
+    return wave

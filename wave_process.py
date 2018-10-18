@@ -7,6 +7,7 @@ Created on Sun Sep 30 14:43:44 2018
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+from scipy.signal import butter,lfilter,filtfilt
 
 def normalization(a,norm = False):
     '''
@@ -28,12 +29,12 @@ def smooth(x, n=20):
 
     weight = np.ones(n)
     weight /= weight.sum()
-    x_sma = np.convolve(x, weight, mode='valid')  # 简单移动平均
+    x_sma = np.convolve(x, weight, mode='same')  # 简单移动平均
 
     weight = np.linspace(1, 0, n)
     weight = np.exp(weight)
     weight /= weight.sum()
-    x_ema = np.convolve(x, weight, mode='valid')  # 指数移动平均
+    x_ema = np.convolve(x, weight, mode='same')  # 指数移动平均
 
 #    mpl.rcParams['font.sans-serif'] = [u'SimHei']
 #    mpl.rcParams['axes.unicode_minus'] = False
@@ -46,6 +47,63 @@ def smooth(x, n=20):
 #    plt.grid(True)
 #    plt.show()
     return x_sma, x_ema
+
+def kalman(a):
+    '''
+    function:卡尔曼滤波
+    '''
+    # 参数初始化
+    n_iter = len(a)
+    sz = (n_iter,) # size of array
+    z = a # observations (normal about x, sigma=0.1)观测值
+     
+    #Q = 2e-4 # process variance
+    Q = np.var(z)
+     
+    # 分配数组空间
+    xhat=np.zeros(sz)      # a posteri estimate of x 滤波估计值
+    P=np.zeros(sz)         # a posteri error estimate滤波估计协方差矩阵
+    xhatminus=np.zeros(sz) # a priori estimate of x 估计值
+    Pminus=np.zeros(sz)    # a priori error estimate估计协方差矩阵
+    K=np.zeros(sz)         # gain or blending factor卡尔曼增益
+     
+    R = 0.08 # estimate of measurement variance, change to see effect
+     
+    # intial guesses
+    xhat[0] = 0.0
+    P[0] = 1.0
+     
+    for k in range(1,n_iter):
+        # 预测
+        xhatminus[k] = xhat[k-1]  #X(k|k-1) = AX(k-1|k-1) + BU(k) + W(k),A=1,BU(k) = 0
+        Pminus[k] = P[k-1]+Q      #P(k|k-1) = AP(k-1|k-1)A' + Q(k) ,A=1
+     
+        # 更新
+        K[k] = Pminus[k]/( Pminus[k]+R ) #Kg(k)=P(k|k-1)H'/[HP(k|k-1)H' + R],H=1
+        xhat[k] = xhatminus[k]+K[k]*(z[k]-xhatminus[k]) #X(k|k) = X(k|k-1) + Kg(k)[Z(k) - HX(k|k-1)], H=1
+        P[k] = (1-K[k])*Pminus[k] #P(k|k) = (1 - Kg(k)H)P(k|k-1), H=1
+    return xhat
+
+def butter_bandpass(lowcut,highcut,fs,order=5):
+    nyq = 0.5 * fs #奈奎斯特频率为采样频率的一半
+    low = lowcut / nyq
+    high = highcut / nyq
+    b,a = butter(order,[low,high],btype = 'band')
+    return b,a
+
+def butter_bandpass_filter(data,lowcut,highcut,fs,order=5):
+    b ,a = butter_bandpass(lowcut,highcut,fs,order = order)
+    #y = lfilter(b,a,data)  ##使用IIR或FIR滤波器沿一维过滤数据,b为分子系数向量,a为分母系数向量,data为数据
+    y = filtfilt(b,a,data)
+    return y  #y为滤波器输出
+
+def fft(a,T,fs):
+    f = np.linspace(0, fs, T*fs, endpoint=False)
+
+    ff = np.fft.fft(a)
+    ff = np.abs(ff)*2/T/fs
+    return f,ff
+
 '''
 def ft(x0):
     mpl.rcParams['font.sans-serif'] = [u'SimHei']
