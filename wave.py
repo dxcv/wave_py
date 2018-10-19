@@ -67,39 +67,42 @@ np.savetxt("静态压数据.txt", pb_all,fmt='%d') #保存为整型格式
 np.savetxt("动态压数据.txt", pc_all,fmt='%d') #保存为整型格式
 
 #if __name__ == '__main__':
-pb_all = np.loadtxt("静态压数据.txt",dtype=int)
+#pb_all = np.loadtxt("静态压数据.txt",dtype=int)
 pc_all = np.loadtxt("动态压数据.txt",dtype=int)
-pbc_all = pb_all+pc_all
+#pbc_all = pb_all+pc_all
 
 
-#for i in range(pc_all.shape[0]):
-#    pc = pc_all[i]
+for i in range(pc_all.shape[0]):
+    pc = pc_all[i]
 
 #*********************
 # 验证不同滤波器的影响
 #*********************
 
-pc = pc_all[34]
-
-# 数据处理
-pc = normalization(pc)
-
-#pc = kalman(pc)
-
-b,a = signal.butter(3,0.005,'high')
-sf = signal.filtfilt(b,a,pc)
-a1, a = smooth(sf,n=10)
-## 寻找特征点
-
-wave = wave_average(a)
-wave_length = len(wave)
-
-T = wave_T(fs = 200, length = wave_length)
-loc_peak_new, y_peak_new, loc_valley_new, y_valley_new = find_features(wave)
-
-get_figure(wave,loc_peak_new, y_peak_new, loc_valley_new, y_valley_new)
-
-
+    #pc = pc_all[20]
+        
+        # 数据处理
+    pc = normalization(pc)
+    
+    #pc = kalman(pc)
+    
+    b,a = signal.butter(5,0.005,'high')
+    sf = signal.filtfilt(b,a,pc)
+    
+    pc1 = butter_bandpass_filter(sf,lowcut = 0.005,highcut=10,fs=200,order=3)
+    #a1, a = smooth(sf,n=10)
+    ## 寻找特征点
+    
+    wave = wave_average(pc1)
+    
+    wave_length = len(wave)
+    
+    T = wave_T(fs = 200, length = wave_length)
+    loc_peak_new, y_peak_new, loc_valley_new, y_valley_new = find_features1(wave)
+    
+    get_figure(wave,loc_peak_new, y_peak_new, loc_valley_new, y_valley_new)
+#plt.figure()
+#plt.hist(wave,30)
 
 
 #    plt.plot(wave_dif1,label=u'一阶差分')
