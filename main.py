@@ -62,9 +62,9 @@ def load_all_data(filedir = 'data'):
         pb_all = np.vstack([pb_all,pb])
         pc_all = np.vstack([pc_all,pc])
     return pb_all[1::], pc_all[1::]
-pb_all, pc_all = load_all_data(filedir = 'data')
+pb_all, pc_all = load_all_data(filedir = '脉象数据20181024')
 
-np.savetxt("静态压数据.txt", pb_all,fmt='%d') #保存为整型格式
+#np.savetxt("静态压数据.txt", pb_all,fmt='%d') #保存为整型格式
 np.savetxt("动态压数据.txt", pc_all,fmt='%d') #保存为整型格式
 
 #if __name__ == '__main__':
@@ -80,30 +80,56 @@ for i in range(pc_all.shape[0]):
 # 验证不同滤波器的影响
 #*********************
 
-    #pc = pc_all[20]
+#    pc = pc_all[20]
         
         # 数据处理
     pc = normalization(pc)
     
     #pc = kalman(pc)
     
-    b,a = signal.butter(5,0.005,'high')
+    b,a = signal.butter(3,0.009,'high')
     sf = signal.filtfilt(b,a,pc)
+    b,a = signal.butter(3,0.1,'low')
+    pc1 = signal.filtfilt(b,a,sf)
     
-    pc1 = butter_bandpass_filter(sf,lowcut = 0.005,highcut=10,fs=200,order=3)
+    #pc1 = butter_bandpass_filter(sf,lowcut = 0.005,highcut=10,fs=200,order=3)
     #a1, a = smooth(sf,n=10)
     ## 寻找特征点
-    
+
     wave = wave_average(pc1)
     
     wave_length = len(wave)
     
     T = wave_T(fs = 200, length = wave_length)
-    loc_peak_new, y_peak_new, loc_valley_new, y_valley_new = find_features1(wave)
+    loc_peak_new, y_peak_new, loc_valley_new, y_valley_new = find_features(wave)
     
     get_figure(wave,loc_peak_new, y_peak_new, loc_valley_new, y_valley_new)
-#plt.figure()
-#plt.hist(wave,30)
+
+    
+
+#for i in range(pc_all.shape[0]):
+#    pc = pc_all[i]
+#
+#    #pc = pc_all[74]
+#            
+#            # 数据处理
+#    pc = normalization(pc)
+#    
+#    #pc = kalman(pc)
+#    
+#    b,a = signal.butter(3,0.009,'high')
+#    sf = signal.filtfilt(b,a,pc)
+#    b,a = signal.butter(3,0.1,'low')
+#    pc1 = signal.filtfilt(b,a,sf)
+#    
+#    #pc1 = butter_bandpass_filter(sf,lowcut = 0.005,highcut=10,fs=200,order=3)
+#    count_peak, y_peak, count_start, y_start = find_peak(pc1)
+#    
+#    plt.figure()
+#    plt.plot(pc)
+#    plt.plot(pc1)
+#    plt.scatter(count_peak, y_peak)
+#    plt.scatter(count_start, y_start)
 
 
 #    plt.plot(wave_dif1,label=u'一阶差分')
