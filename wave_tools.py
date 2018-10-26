@@ -207,15 +207,21 @@ def wave_average(a):
     '''
     _, _, count_start, _ = find_peak(a)
     cuttings = cutting(a, count_start)
-
-    length = np.array([len(i) for i in cuttings])
+    
+    length = np.array([len(k) for k in cuttings])
+    mark = length < 220
+    length = length[mark]
+    cuttings = cuttings[mark]
+    
     m = np.mean(length)
     v = np.std(length) #标准差
     
     # 选出标准差小于2倍标准差的周期
-    mark = np.abs(length-m)<=2*v
+    mark = np.abs(length-m)<=1.8*v
     cuttings = cuttings[mark]
-    length = length[mark]
+    
+    cuttings = mark_by_ystd(cuttings)
+    length = np.array([len(kk) for kk in cuttings])
     m_length = int(round(np.mean(length)))
     
     length_length = len(length)
@@ -449,3 +455,62 @@ def breath_average(wave):
     wave = np.mean(cuttings_new,axis = 0)
     
     return wave
+
+def K(a):
+    '''
+    function:计算波形K值
+    '''
+    return (np.mean(a)-min(a))/(max(a)-min(a))
+
+#def pm(a):
+#    '''
+#    function:平均脉压
+#    '''
+#    return np.mean(a)
+    
+def y_std(cuttings,list_save = [20,40,60,80,100]):
+    '''求剪切信号y值的方差'''
+    a = np.array([])
+    for i in cuttings:
+        a = np.append(a,i[list_save])
+    a = a.reshape(cuttings.shape[0],5)
+    a_std = np.std(a,axis=0)
+    a_mean = np.mean(a,axis=0)
+    mark = np.abs(a - a_mean)<=2*a_std
+    mark1 = mark[:,0] & mark[:,1] & mark[:,2] & mark[:,3] & mark[:,4]
+    return mark1
+        
+def mark_by_ystd(cuttings):
+    
+    mark = y_std(cuttings,list_save = [20,40,60,80,100])
+    
+    return (cuttings[mark])
+
+def figure_cuttings(a):
+    count_peak, y_peak, count_start, y_start = find_peak(a)
+    cuttings = cutting(a, count_start)
+    
+    length = np.array([len(k) for k in cuttings])
+    mark = length < 220
+    length = length[mark]
+    cuttings = cuttings[mark]
+    
+    m = np.mean(length)
+    v = np.std(length) #标准差
+    
+    # 选出标准差小于2倍标准差的周期
+    
+    #cuttings1 = cuttings[mark]
+    mark = np.abs(length-m)<=1.8*v
+    cuttings1 = cuttings[mark]
+    cuttings2 = mark_by_ystd(cuttings1)
+    
+    plt.figure()
+    plt.subplot(211)
+    for j in cuttings1:
+        plt.plot(j)
+    plt.text(100,0,'数量：{}'.format(cuttings1.shape[0]),fontsize=12)
+    plt.subplot(212)
+    for ii in cuttings2:
+        plt.plot(ii)
+    plt.text(100,0,'数量：{}'.format(cuttings2.shape[0]),fontsize=12)
