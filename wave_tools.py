@@ -287,14 +287,16 @@ def find_features(wave):
     '''
     function：寻找特征点
     '''
-    wave_dif = wave_diff(wave)
+    n_move = 2
+    wave_fstdif = wave_diff(wave)
     
     m_length = len(wave)
-    #wave_secdif = wave_diff(wave,n=2)
-    #wave_thrdif = wave_diff(wave,n=3)
+    wave_secdif = wave_diff(wave,n=2)
+    wave_thrdif = wave_diff(wave,n=3)
     
-    wave_secdif,_ = smooth(wave_diff(wave,n=2),n=3)
-    wave_thrdif,_ = smooth(wave_diff(wave,n=3),n=3)
+    #wave_secdif,_ = smooth(wave_diff(wave,n=2),n=3)
+    #wave_thrdif,_ = smooth(wave_diff(wave,n=3),n=3)
+    
     #print(i, w_T, len(count_peak)*2)
     
     # 波峰
@@ -302,14 +304,16 @@ def find_features(wave):
     # 波谷
     loc_valley, y_valley = valley1(wave)
     
-    wave_dif1,_ = smooth(wave_dif[0:100],n=3) #取一阶差分的前100点分析
-    loc_peak1, y_peak1 = peak1(wave_dif1)    #求一阶差分曲线有几个波峰
+    wave_fstdif1 = wave_fstdif[0:100] #取一阶差分的前100点分析
+    loc_peak1, y_peak1 = peak1(wave_fstdif1)    #求一阶差分曲线有几个波峰
     #   求二阶差分曲线的波峰、波谷
     loc_peak2, y_peak2 = peak1(wave_secdif)
     loc_valley2, y_valley2 = valley1(wave_secdif)
     #   删除不合理的波峰波谷
     loc_peak = loc_peak[loc_peak<120]
-    loc_valley = loc_valley[loc_valley<120]
+    loc_valley = loc_valley[loc_valley<100] # 这两个值决定了最后有没有误判点，此方法不通用，以后需改进
+    #loc_peak = loc_peak[0:3]
+    #loc_valley = loc_valley[0:2]
     
     loc_peak_new = np.array([])
     loc_valley_new = np.array([])
@@ -327,20 +331,26 @@ def find_features(wave):
                 #此处可能由于二阶差分不准确造成误判，后期加入辅助判断
                 #取出重搏波
                 loc_peak2 = loc_peak2[loc_peak2<loc_peak1[2]]   #通过二阶变化曲线求圆滑过渡两边波峰波谷的点
-                loc_valley_new = np.append(loc_valley_new,loc_peak2[-1]+6)
+                loc_valley_new = np.append(loc_valley_new,loc_peak2[-1]+n_move)
                 
                 loc_valley2 = loc_valley2[loc_valley2>loc_peak1[2]]
                 loc_peak_new = np.append(loc_peak_new,loc_valley2[0])
+                
+                
                 #loc_peak_new = np.append(loc_peak_new,loc_peak1[2])  #加入中点位置,后期需要去掉
                 
         else:   #为重搏波
             #通过二阶差分判断是否有不明显的潮波，由于二阶差分误差较大，判断并不是很准确，需要改进
             if len(loc_peak1) == 3: #有三个波峰，则证明有不明显的潮波
                 loc_peak2 = loc_peak2[loc_peak2<loc_peak1[1]]
-                loc_valley_new = np.append(loc_valley_new,loc_peak2[-1]+2)
-                
                 loc_valley2 = loc_valley2[loc_valley2>loc_peak1[1]]
+                
+                #slope = (wave[loc_valley2[0]] - wave[loc_peak2[-1]+2]) / (loc_valley2[0] - (loc_peak2[-1] + 2))
+                
+                #if slope >= -0.005 :
+                loc_valley_new = np.append(loc_valley_new,loc_peak2[-1]+n_move)
                 loc_peak_new = np.append(loc_peak_new,loc_valley2[0])   #加入潮波位置
+                
                 
                 #loc_peak_new = np.append(loc_peak_new,loc_peak1[1])  #加入中点位置,后期需要去掉
                 loc_peak_new = np.append(loc_peak_new,loc_peak[1])   #加入重搏波位置
@@ -355,10 +365,13 @@ def find_features(wave):
                 loc_valley22 = loc_valley2
                 
                 loc_peak22 = loc_peak22[loc_peak22<z]
-                loc_valley_new = np.append(loc_valley_new,loc_peak22[-1]+4)
+                loc_valley_new = np.append(loc_valley_new,loc_peak22[-1]+n_move)
                 
                 loc_valley22 = loc_valley22[loc_valley22>z]
-                loc_peak_new = np.append(loc_peak_new,loc_valley22[0]+2)
+                loc_peak_new = np.append(loc_peak_new,loc_valley22[0])
+    
+    loc_peak_new = np.sort(loc_peak_new)
+    loc_valley_new = np.sort(loc_valley_new)
     
     y_peak_new = np.array([])
     y_valley_new = np.array([])
@@ -366,9 +379,36 @@ def find_features(wave):
         y_peak_new = np.append(y_peak_new,wave[int(j)])
     for k in loc_valley_new:
         y_valley_new = np.append(y_valley_new,wave[int(k)])
-    
+
     return loc_peak_new, y_peak_new, loc_valley_new, y_valley_new
 
+def features_choose(wave,loc_peak, y_peak, loc_valley, y_valley):
+    '''去除不合理特征'''
+    loc_peak_new = np.array([])
+    loc_valley_new = np.array([])
+#    y_peak_new = y_peak[0]
+#    y_valley_new = np.array([])
+    loc_peak_new = np.append(loc_peak_new, loc_peak[0])
+    if len(loc_valley):
+        for i in np.arange(len(loc_valley)):
+            slope = (y_peak[i+1] - y_valley[i]) / (loc_peak[i+1] - loc_valley[i])
+            if slope >= -0.004 :
+                loc_peak_new = np.append(loc_peak_new, loc_peak[i+1])
+                loc_valley_new = np.append(loc_valley_new, loc_valley[i])
+                
+#                y_peak_new = np.append(y_peak_new, y_peak[i+1])
+#                y_valley_new = np.append(y_valley_new, y_valley[i])
+    y_peak_new = np.array([])
+    y_valley_new = np.array([])
+    for j in loc_peak_new:
+        y_peak_new = np.append(y_peak_new,wave[int(j)])
+    for k in loc_valley_new:
+        y_valley_new = np.append(y_valley_new,wave[int(k)])
+    
+    
+    return loc_peak_new, y_peak_new, loc_valley_new, y_valley_new
+        
+    
 def find_features1(wave):
     '''
     function：直接通过求局部极值的方式求波峰波谷
