@@ -80,9 +80,9 @@ for i in range(pc_all.shape[0]):
 # 验证不同滤波器的影响
 #*********************
 
-#    pc = pc_all[20]
-        
-        # 数据处理
+    #pc = pc_all[53]
+            
+            # 数据处理
     pc = normalization(pc)
     
     #pc = kalman(pc)
@@ -95,48 +95,50 @@ for i in range(pc_all.shape[0]):
     #pc1 = butter_bandpass_filter(sf,lowcut = 0.005,highcut=10,fs=200,order=3)
     #a1, a = smooth(sf,n=10)
     ## 寻找特征点
-
+    
     wave = wave_average(pc1)
     
+#*********************
+#wave_fstdif = wave_diff(wave)
+#    
+#m_length = len(wave)
+#wave_secdif = wave_diff(wave,n=2)
+#wave_thrdif = wave_diff(wave,n=3)
+#
+#plt.figure()
+#plt.plot(wave)
+#plt.plot(wave_fstdif)
+#plt.plot(wave_secdif)
+#plt.plot(wave_thrdif)
+#plt.grid(True)
+
+#************************
+
     wave_length = len(wave)
     
     T = wave_T(fs = 200, length = wave_length)
     loc_peak_new, y_peak_new, loc_valley_new, y_valley_new = find_features(wave)
     
+    loc_peak_new, y_peak_new, loc_valley_new, y_valley_new = features_choose(wave,loc_peak_new, y_peak_new, loc_valley_new, y_valley_new)
+    
     get_figure(wave,loc_peak_new, y_peak_new, loc_valley_new, y_valley_new)
 
-    
 
-#for i in range(pc_all.shape[0]):
-#    pc = pc_all[i]
+#wave_fstdif = wave_diff(wave)
+#wave_secdif = wave_diff(wave,n=2)
+#wave_thrdif = wave_diff(wave,n=3)
 #
-#    #pc = pc_all[74]
-#            
-#            # 数据处理
-#    pc = normalization(pc)
-#    
-#    #pc = kalman(pc)
-#    
-#    b,a = signal.butter(3,0.009,'high')
-#    sf = signal.filtfilt(b,a,pc)
-#    b,a = signal.butter(3,0.1,'low')
-#    pc1 = signal.filtfilt(b,a,sf)
-#    
-#    #pc1 = butter_bandpass_filter(sf,lowcut = 0.005,highcut=10,fs=200,order=3)
-#    count_peak, y_peak, count_start, y_start = find_peak(pc1)
-#    
-#    plt.figure()
-#    plt.plot(pc)
-#    plt.plot(pc1)
-#    plt.scatter(count_peak, y_peak)
-#    plt.scatter(count_start, y_start)
-
-
-#    plt.plot(wave_dif1,label=u'一阶差分')
-#    plt.plot(wave_secdif,label=u'二阶差分')
-#    plt.plot(wave_thrdif,label=u'三阶差分')
+#loc_peak1,y_peak1 = peak1(wave_fstdif)
+#loc_peak2,y_peak2 = peak1(wave_secdif)
+#
+#plt.figure()
+#plt.plot(wave_fstdif,label=u'一阶差分')
+#plt.plot(wave_secdif,label=u'二阶差分')
+#plt.plot(wave_thrdif,label=u'三阶差分')
 #plt.scatter(loc_peak1,y_peak1)
 #plt.scatter(loc_peak2,y_peak2)
+#
+#plt.grid(True)
 #plt.scatter(loc_peak1[1],wave[loc_peak1[1]])
 
 #plt.savefig('figure/平均波形/fig{}.jpg'.format(i))
