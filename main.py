@@ -10,11 +10,9 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import os
 from scipy import signal
-#import pandas as pd
 from filter import *
 from wave_process import *
 from wave_tools import *
-#import pandas as pd
 
 # 参数设定
 fs = 200    #采样率
@@ -32,17 +30,21 @@ def loaddata(filename):
     array_list = []
     with open(filename) as f:
         data_original = f.read().splitlines()
-        #wave_data = np.fromstring(str_data, dtype=numpy.short)
         for i in data_original:
             array_line = i.split(',')
             array_list.append(array_line)
         #转为int32数据
         data = np.array(array_list)
         data = data.astype(int)
-        pb = data[:,1:2].T
-        pc = data[:,3:].T
-        return data,pb,pc
-    
+        pb = data[:,1].T
+        pc = data[:,3].T
+        
+        #pb = data[:,1:2].T #如果是把多个文件一起生成一个数据文件，需要改成此种形式
+        #pc = data[:,3:].T
+        #return data,pb,pc
+        
+        return pc
+
 def load_all_data(filedir = 'data'):
     '''
     function ： 通过子文件加载所有数据
@@ -53,8 +55,7 @@ def load_all_data(filedir = 'data'):
         pc_all : 动态压所有数据
     '''
     files = os.listdir(filedir)
-       
-    pb_all = np.zeros([1,6000]).astype(int) #本方法有待改进
+    pb_all = np.zeros([1,6000]).astype(int)
     pc_all = np.zeros([1,6000]).astype(int)
     for file in files:
         filename = filedir + '/' + file
@@ -62,58 +63,33 @@ def load_all_data(filedir = 'data'):
         pb_all = np.vstack([pb_all,pb])
         pc_all = np.vstack([pc_all,pc])
     return pb_all[1::], pc_all[1::]
-pb_all, pc_all = load_all_data(filedir = '脉象数据20181024')
+
+#pb_all, pc_all = load_all_data(filedir = '脉象数据20181024')
 
 #np.savetxt("静态压数据.txt", pb_all,fmt='%d') #保存为整型格式
-np.savetxt("动态压数据.txt", pc_all,fmt='%d') #保存为整型格式
+#np.savetxt("动态压数据.txt", pc_all,fmt='%d') #保存为整型格式
 
-#if __name__ == '__main__':
+
 #pb_all = np.loadtxt("静态压数据.txt",dtype=int)
 pc_all = np.loadtxt("动态压数据.txt",dtype=int)
 #pbc_all = pb_all+pc_all
+for i in pc_all:
+    pc = i
 
-
-for i in range(pc_all.shape[0]):
-    pc = pc_all[i]
-
-#*********************
-# 验证不同滤波器的影响
-#*********************
-
-    #pc = pc_all[53]
-            
-            # 数据处理
-    pc = normalization(pc)
+#if __name__ == '__main__':
     
-    #pc = kalman(pc)
+    #filename = '脉象数据20181024/取样数据01R.txt'
+    #pc = loaddata(filename)
+    
+    pc = normalization(pc)
     
     b,a = signal.butter(3,0.009,'high')
     sf = signal.filtfilt(b,a,pc)
     b,a = signal.butter(3,0.1,'low')
     pc1 = signal.filtfilt(b,a,sf)
     
-    #pc1 = butter_bandpass_filter(sf,lowcut = 0.005,highcut=10,fs=200,order=3)
-    #a1, a = smooth(sf,n=10)
-    ## 寻找特征点
-    
     wave = wave_average(pc1)
     
-#*********************
-#wave_fstdif = wave_diff(wave)
-#    
-#m_length = len(wave)
-#wave_secdif = wave_diff(wave,n=2)
-#wave_thrdif = wave_diff(wave,n=3)
-#
-#plt.figure()
-#plt.plot(wave)
-#plt.plot(wave_fstdif)
-#plt.plot(wave_secdif)
-#plt.plot(wave_thrdif)
-#plt.grid(True)
-
-#************************
-
     wave_length = len(wave)
     
     T = wave_T(fs = 200, length = wave_length)
@@ -123,22 +99,3 @@ for i in range(pc_all.shape[0]):
     
     get_figure(wave,loc_peak_new, y_peak_new, loc_valley_new, y_valley_new)
 
-
-#wave_fstdif = wave_diff(wave)
-#wave_secdif = wave_diff(wave,n=2)
-#wave_thrdif = wave_diff(wave,n=3)
-#
-#loc_peak1,y_peak1 = peak1(wave_fstdif)
-#loc_peak2,y_peak2 = peak1(wave_secdif)
-#
-#plt.figure()
-#plt.plot(wave_fstdif,label=u'一阶差分')
-#plt.plot(wave_secdif,label=u'二阶差分')
-#plt.plot(wave_thrdif,label=u'三阶差分')
-#plt.scatter(loc_peak1,y_peak1)
-#plt.scatter(loc_peak2,y_peak2)
-#
-#plt.grid(True)
-#plt.scatter(loc_peak1[1],wave[loc_peak1[1]])
-
-#plt.savefig('figure/平均波形/fig{}.jpg'.format(i))
