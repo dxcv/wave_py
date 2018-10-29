@@ -75,7 +75,7 @@ def find_peak(a):
     # 求波谷-起始点
     ps = np.min(a)
     G2 = 0.5 * ps
-    a_start = np.minimum(a, G2)  
+    a_start = np.minimum(a, G2)
     count_start, y_start = valley(a_start)
     # 将误识别点去除
     count_start_diff = wave_diff(count_start, n=1, axis=-1)
@@ -310,22 +310,38 @@ def find_features(wave):
     loc_peak2, y_peak2 = peak1(wave_secdif)
     loc_valley2, y_valley2 = valley1(wave_secdif)
     #   删除不合理的波峰波谷
-    loc_peak = loc_peak[loc_peak<120]
-    loc_valley = loc_valley[loc_valley<100] # 这两个值决定了最后有没有误判点，此方法不通用，以后需改进
-    #loc_peak = loc_peak[0:3]
-    #loc_valley = loc_valley[0:2]
+    #loc_peak = loc_peak[loc_peak<120]
+    #loc_valley = loc_valley[loc_valley<100] # 这两个值决定了最后有没有误判点，此方法不通用，以后需改进
+    loc_peak = loc_peak[0:3]
+    loc_valley = loc_valley[0:2]
     
     loc_peak_new = np.array([])
     loc_valley_new = np.array([])
-    loc_valley_new = np.append(loc_valley_new,loc_valley)
+    #loc_valley_new = np.append(loc_valley_new,loc_valley)
+    
+    seq = ('H1','H2','H3','H4','H5')
+    dict_features = dict.fromkeys(seq,0)
+    
     if len(loc_peak) == 3:
         loc_peak_new = np.append(loc_peak_new,loc_peak)
-    
+        loc_valley_new = np.append(loc_valley_new,loc_valley)
+        
+        dict_features['H1'], dict_features['H3'], dict_features['H5'] = loc_peak_new[0],loc_peak_new[1],loc_peak_new[2]
+        dict_features['H2'], dict_features['H4'] = loc_valley_new[0], loc_valley_new[1]
+        
     if len(loc_peak) == 2:
         loc_peak_new = np.append(loc_peak_new,loc_peak[0])
+        loc_valley_new = np.append(loc_valley_new,loc_valley)
+        
+        dict_features['H1'] = loc_peak_new[0]
+        
         #判断第二个波峰是潮波还是重搏波
         if (loc_peak[1]-loc_peak[0])/m_length <= 0.2:   #if True,为潮波
             loc_peak_new = np.append(loc_peak_new,loc_peak[1])
+            
+            dict_features['H3'] = loc_peak_new[1]
+            dict_features['H2'] = loc_valley_new[0]
+            
             #通过二阶差分判断是否有不明显的重搏波
             if len(loc_peak1) == 3: #有三个波峰，则证明有不明显的重搏波
                 #此处可能由于二阶差分不准确造成误判，后期加入辅助判断
@@ -336,11 +352,16 @@ def find_features(wave):
                 loc_valley2 = loc_valley2[loc_valley2>loc_peak1[2]]
                 loc_peak_new = np.append(loc_peak_new,loc_valley2[0])
                 
+                dict_features['H4'] = loc_valley_new[1]
+                dict_features['H5'] = loc_peak_new[2]
                 
                 #loc_peak_new = np.append(loc_peak_new,loc_peak1[2])  #加入中点位置,后期需要去掉
                 
         else:   #为重搏波
             #通过二阶差分判断是否有不明显的潮波，由于二阶差分误差较大，判断并不是很准确，需要改进
+            dict_features['H4'] = loc_valley_new[0]
+            
+            
             if len(loc_peak1) == 3: #有三个波峰，则证明有不明显的潮波
                 loc_peak2 = loc_peak2[loc_peak2<loc_peak1[1]]
                 loc_valley2 = loc_valley2[loc_valley2>loc_peak1[1]]
@@ -351,11 +372,14 @@ def find_features(wave):
                 loc_valley_new = np.append(loc_valley_new,loc_peak2[-1]+n_move)
                 loc_peak_new = np.append(loc_peak_new,loc_valley2[0])   #加入潮波位置
                 
-                
                 #loc_peak_new = np.append(loc_peak_new,loc_peak1[1])  #加入中点位置,后期需要去掉
                 loc_peak_new = np.append(loc_peak_new,loc_peak[1])   #加入重搏波位置
+                
+                dict_features['H2'] = loc_valley_new[1]
+                dict_features['H3'] = loc_peak_new[-1]
             else: #没有潮波
                 loc_peak_new = np.append(loc_peak_new,loc_peak[1])   #加入重搏波位置
+            dict_features['H5'] = loc_peak_new[-1]
                 
     if len(loc_peak) == 1:
         loc_peak_new = np.append(loc_peak_new,loc_peak)
@@ -369,6 +393,9 @@ def find_features(wave):
                 
                 loc_valley22 = loc_valley22[loc_valley22>z]
                 loc_peak_new = np.append(loc_peak_new,loc_valley22[0])
+    
+#    else:
+#        print('数据有误，请重新测量')
     
     loc_peak_new = np.sort(loc_peak_new)
     loc_valley_new = np.sort(loc_valley_new)
