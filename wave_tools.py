@@ -319,28 +319,28 @@ def find_features(wave):
     loc_valley_new = np.array([])
     #loc_valley_new = np.append(loc_valley_new,loc_valley)
     
-    seq = ('H1','H2','H3','H4','H5')
-    dict_features = dict.fromkeys(seq,0)
+#    seq = ('H1','H2','H3','H4','H5')
+#    dict_features = dict.fromkeys(seq,0)
     
     if len(loc_peak) == 3:
         loc_peak_new = np.append(loc_peak_new,loc_peak)
         loc_valley_new = np.append(loc_valley_new,loc_valley)
         
-        dict_features['H1'], dict_features['H3'], dict_features['H5'] = loc_peak_new[0],loc_peak_new[1],loc_peak_new[2]
-        dict_features['H2'], dict_features['H4'] = loc_valley_new[0], loc_valley_new[1]
+#        dict_features['H1'], dict_features['H3'], dict_features['H5'] = loc_peak_new[0],loc_peak_new[1],loc_peak_new[2]
+#        dict_features['H2'], dict_features['H4'] = loc_valley_new[0], loc_valley_new[1]
         
     if len(loc_peak) == 2:
         loc_peak_new = np.append(loc_peak_new,loc_peak[0])
         loc_valley_new = np.append(loc_valley_new,loc_valley)
         
-        dict_features['H1'] = loc_peak_new[0]
+#        dict_features['H1'] = loc_peak_new[0]
         
         #判断第二个波峰是潮波还是重搏波
         if (loc_peak[1]-loc_peak[0])/m_length <= 0.2:   #if True,为潮波
             loc_peak_new = np.append(loc_peak_new,loc_peak[1])
             
-            dict_features['H3'] = loc_peak_new[1]
-            dict_features['H2'] = loc_valley_new[0]
+#            dict_features['H3'] = loc_peak_new[1]
+#            dict_features['H2'] = loc_valley_new[0]
             
             #通过二阶差分判断是否有不明显的重搏波
             if len(loc_peak1) == 3: #有三个波峰，则证明有不明显的重搏波
@@ -352,14 +352,14 @@ def find_features(wave):
                 loc_valley2 = loc_valley2[loc_valley2>loc_peak1[2]]
                 loc_peak_new = np.append(loc_peak_new,loc_valley2[0])
                 
-                dict_features['H4'] = loc_valley_new[1]
-                dict_features['H5'] = loc_peak_new[2]
+#                dict_features['H4'] = loc_valley_new[1]
+#                dict_features['H5'] = loc_peak_new[2]
                 
                 #loc_peak_new = np.append(loc_peak_new,loc_peak1[2])  #加入中点位置,后期需要去掉
                 
         else:   #为重搏波
             #通过二阶差分判断是否有不明显的潮波，由于二阶差分误差较大，判断并不是很准确，需要改进
-            dict_features['H4'] = loc_valley_new[0]
+#            dict_features['H4'] = loc_valley_new[0]
             
             
             if len(loc_peak1) == 3: #有三个波峰，则证明有不明显的潮波
@@ -375,11 +375,11 @@ def find_features(wave):
                 #loc_peak_new = np.append(loc_peak_new,loc_peak1[1])  #加入中点位置,后期需要去掉
                 loc_peak_new = np.append(loc_peak_new,loc_peak[1])   #加入重搏波位置
                 
-                dict_features['H2'] = loc_valley_new[1]
-                dict_features['H3'] = loc_peak_new[-1]
+#                dict_features['H2'] = loc_valley_new[1]
+#                dict_features['H3'] = loc_peak_new[-1]
             else: #没有潮波
                 loc_peak_new = np.append(loc_peak_new,loc_peak[1])   #加入重搏波位置
-            dict_features['H5'] = loc_peak_new[-1]
+#            dict_features['H5'] = loc_peak_new[-1]
                 
     if len(loc_peak) == 1:
         loc_peak_new = np.append(loc_peak_new,loc_peak)
@@ -435,6 +435,79 @@ def features_choose(wave,loc_peak, y_peak, loc_valley, y_valley):
     
     return loc_peak_new, y_peak_new, loc_valley_new, y_valley_new
         
+def features_dict(wave,loc_peak, y_peak, loc_valley, y_valley):
+    '''把特征点存在字典中'''
+    length = len(wave)
+    seq = ('wave','H1','H2','H3','H4','H5')
+    dict_features = dict.fromkeys(seq,[0,0])
+    dict_features['wave'] = wave
+    if len(loc_peak)==3 and len(loc_valley)==2:
+        if loc_peak[0]<loc_valley[0]<loc_peak[1]<loc_valley[1]<loc_peak[2]:
+            dict_features['H1'] = [loc_peak[0],y_peak[0]]
+            dict_features['H3'] = [loc_peak[1],y_peak[1]]
+            dict_features['H5'] = [loc_peak[2],y_peak[2]]
+            
+            dict_features['H2']=[loc_valley[0],y_valley[0]]
+            dict_features['H4']=[loc_valley[1],y_valley[1]]
+            
+    if len(loc_peak)==2 and len(loc_valley)==1:
+        #判断第二个波峰是潮波还是重搏波
+        dict_features['H1']=[loc_peak[0],y_peak[0]]
+        if (loc_peak[1]-loc_peak[0])/length <= 0.2:   #if True,为潮波
+            dict_features['H3']=[loc_peak[1],y_peak[1]]
+            dict_features['H2']=[loc_valley[0],y_valley[0]]
+        else :
+            dict_features['H5']=[loc_peak[1],y_peak[1]]
+            dict_features['H4']=[loc_valley[0],y_valley[0]]
+    if len(loc_peak)==1 and len(loc_valley)==0:
+        dict_features['H1']=[loc_peak[0],y_peak[0]]
+#    else:
+#        print('数据有误，请重新测量')
+    return dict_features
+
+def values(dict_features):
+    '''获取特征参数'''
+    length = len(dict_features['wave'])
+    
+    f = 200*60/length
+    
+    t1_divide_T = dict_features['H1'][0]/length
+    t2_divide_T = dict_features['H2'][0]/length
+    t3_divide_T = dict_features['H3'][0]/length
+    t4_divide_T = dict_features['H4'][0]/length
+    t5_divide_T = dict_features['H5'][0]/length
+    
+    H1 = dict_features['H1'][1]
+    
+    H2_divide_H1 = dict_features['H2'][1]/H1
+    H3_divide_H1 = dict_features['H3'][1]/H1
+    H4_divide_H1 = dict_features['H4'][1]/H1
+    H5_divide_H1 = dict_features['H5'][1]/H1
+    
+    H32_divide_H1 = (dict_features['H3'][1]-dict_features['H2'][1])/H1
+    H54_divide_H1 = (dict_features['H5'][1]-dict_features['H4'][1])/H1
+    
+    values_features = {}
+    
+    values_features['wave'] = dict_features['wave']
+    
+    values_features['f'] = f
+    values_features['t1_divide_T'] = t1_divide_T
+    values_features['t2_divide_T'] = t2_divide_T
+    values_features['t3_divide_T'] = t3_divide_T
+    values_features['t4_divide_T'] = t4_divide_T
+    values_features['t5_divide_T'] = t5_divide_T
+    
+    values_features['H1'] = H1
+    values_features['H2_divide_H1'] = H2_divide_H1
+    values_features['H3_divide_H1'] = H3_divide_H1
+    values_features['H4_divide_H1'] = H4_divide_H1
+    values_features['H5_divide_H1'] = H5_divide_H1
+    
+    values_features['H32_divide_H1'] = H32_divide_H1
+    values_features['H54_divide_H1'] = H54_divide_H1
+    
+    return values_features
     
 def find_features1(wave):
     '''
