@@ -71,16 +71,16 @@ def load_all_data(filedir = 'data'):
 
 
 #pb_all = np.loadtxt("静态压数据.txt",dtype=int)
-pc_all = np.loadtxt("动态压数据.txt",dtype=int)
+#pc_all = np.loadtxt("动态压数据.txt",dtype=int)
 #pbc_all = pb_all+pc_all
-for i in pc_all:
-    pc = i
+#for i in pc_all:
+#    pc = i
 
-#if __name__ == '__main__':
+if __name__ == '__main__':
     
-    #filename = '脉象数据20181024/取样数据01R.txt'
-    #pc = loaddata(filename)
-    
+    filename = '脉象数据20181024/取样数据01R.txt'
+    pc = loaddata(filename)
+    #pc = pc_all[30]
     pc = normalization(pc)
     
     b,a = signal.butter(3,0.009,'high')
