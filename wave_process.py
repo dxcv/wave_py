@@ -36,16 +36,6 @@ def smooth(x, n=20):
     weight /= weight.sum()
     x_ema = np.convolve(x, weight, mode='same')  # 指数移动平均
 
-#    mpl.rcParams['font.sans-serif'] = [u'SimHei']
-#    mpl.rcParams['axes.unicode_minus'] = False
-#    plt.figure(facecolor='w')
-#    plt.plot(np.arange(N), x, 'c-', linewidth=1, label=u'原始')
-#    t = np.arange(n - 1, N)
-#    plt.plot(t, x_sma, 'g-', linewidth=1, label=u'简单移动平均线')
-#    plt.plot(t, x_ema, 'r-', linewidth=1, label=u'指数移动平均线')
-#    plt.legend(loc='upper right')
-#    plt.grid(True)
-#    plt.show()
     return x_sma, x_ema
 
 def kalman(a):
